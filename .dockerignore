@@ -1,0 +1,7 @@
+.git
+.gitignore
+.mvn
+src/test
+*.md
+.idea
+*.iml

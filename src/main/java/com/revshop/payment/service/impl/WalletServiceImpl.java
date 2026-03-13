@@ -42,14 +42,18 @@ public class WalletServiceImpl implements WalletService {
     @Override
     public void sendSmsOtp(Long userId, String mobileNumber) {
         log.info("Sending SMS OTP to user={} at {}", userId, mobileNumber);
-        // TODO: Call notification-service.sendOtp(mobileNumber)
+        // Note: In a full microservice setup, this would call notification-service.
+        // For now, we simulate the OTP sending.
+        log.debug("Simulated OTP sent to {}", mobileNumber);
     }
 
     @Override
     public Wallet verifyMobileKyc(Long userId, String mobileNumber, String otp) {
         log.info("Verifying mobile KYC for user={} with otp", userId);
         
-        // TODO: Call notification-service.verifyOtp(mobileNumber, otp)
+        // Note: In a full microservice setup, this would call notification-service.
+        // For now, we simulate OTP verification.
+        log.debug("Simulated OTP verification for mobile: {}, otp: {}", mobileNumber, otp);
         boolean isVerified = true; // Simulating verification for now
         
         if (!isVerified) {

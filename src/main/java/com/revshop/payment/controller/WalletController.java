@@ -40,8 +40,12 @@ public class WalletController {
 
     @GetMapping("/balance")
     public ResponseEntity<ApiResponse<Wallet>> getWalletBalance(@RequestHeader("X-User-Id") Long userId) {
-        Wallet wallet = walletService.getWalletByUser(userId);
-        return ResponseEntity.ok(new ApiResponse<>("Wallet fetched successfully", wallet));
+        try {
+            Wallet wallet = walletService.getWalletByUser(userId);
+            return ResponseEntity.ok(new ApiResponse<>("Wallet fetched successfully", wallet));
+        } catch (RuntimeException e) {
+            return ResponseEntity.ok(new ApiResponse<>("Wallet not found or not activated", null));
+        }
     }
 
     @PostMapping("/create-razorpay-order")

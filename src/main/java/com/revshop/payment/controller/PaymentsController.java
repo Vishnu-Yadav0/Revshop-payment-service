@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -35,6 +36,37 @@ public class PaymentsController {
                 .body(new ApiResponse<>(
                         "Payment created successfully",
                         convertToDTO(savedPayment)));
+    }
+
+    @PostMapping("/create-order")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> createRazorpayOrder(@RequestBody Map<String, Object> request) {
+        try {
+            Integer amount = Integer.valueOf(request.get("amount").toString());
+            Integer orderId = Integer.valueOf(request.get("orderId").toString());
+            Map<String, Object> orderDetails = paymentsService.createRazorpayOrder(amount, orderId);
+            return ResponseEntity.ok(new ApiResponse<>("Razorpay order created", orderDetails));
+        } catch (Exception e) {
+            log.error("Failed to create Razorpay Order: {}", e.getMessage());
+            throw new RuntimeException("Failed to create Razorpay Order: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/verify")
+    public ResponseEntity<ApiResponse<Boolean>> verifyPayment(@RequestBody Map<String, Object> request) {
+        try {
+            String razorpayOrderId = (String) request.get("razorpayOrderId");
+            String razorpayPaymentId = (String) request.get("razorpayPaymentId");
+            String razorpaySignature = (String) request.get("razorpaySignature");
+            Integer internalOrderId = Integer.valueOf(request.get("internalOrderId").toString());
+
+            boolean isVerified = paymentsService.verifyPaymentAndConfirmOrder(
+                    razorpayOrderId, razorpayPaymentId, razorpaySignature, internalOrderId);
+            
+            return ResponseEntity.ok(new ApiResponse<>("Payment verified successfully", isVerified));
+        } catch (Exception e) {
+            log.error("Payment verification failed: {}", e.getMessage());
+            throw new RuntimeException("Payment verification failed: " + e.getMessage());
+        }
     }
 
     @GetMapping("/{id}")

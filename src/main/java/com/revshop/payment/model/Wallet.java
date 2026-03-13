@@ -24,12 +24,15 @@ public class Wallet {
     @Column(name = "user_id", nullable = false, unique = true)
     private Long userId;
 
+    @Builder.Default
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal balance = BigDecimal.ZERO;
 
+    @Builder.Default
     @Column(name = "is_active", nullable = false)
     private boolean isActive = false;
 
+    @Builder.Default
     @Column(name = "kyc_verified", nullable = false)
     private boolean kycVerified = false;
 

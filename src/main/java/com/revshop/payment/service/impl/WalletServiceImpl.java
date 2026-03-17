@@ -11,11 +11,16 @@ import com.revshop.payment.service.WalletService;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @Transactional
@@ -24,8 +29,7 @@ public class WalletServiceImpl implements WalletService {
 
     private final WalletRepository walletRepository;
     private final WalletTransactionRepository walletTransactionRepository;
-    // In microservices, we'd call notification-service for Twilio/SMS
-    // private final NotificationClient notificationClient;
+    private final RestTemplate restTemplate;
 
     @Value("${razorpay.key.id:rzp_test_placeholder}")
     private String razorpayKeyId;
@@ -33,31 +37,55 @@ public class WalletServiceImpl implements WalletService {
     @Value("${razorpay.key.secret:secret_placeholder}")
     private String razorpayKeySecret;
 
+    @Value("${notification-service.url:http://localhost:8087}")
+    private String notificationServiceUrl;
+
     public WalletServiceImpl(WalletRepository walletRepository,
                              WalletTransactionRepository walletTransactionRepository) {
         this.walletRepository = walletRepository;
         this.walletTransactionRepository = walletTransactionRepository;
+        this.restTemplate = new RestTemplate();
     }
 
     @Override
     public void sendSmsOtp(Long userId, String mobileNumber) {
         log.info("Sending SMS OTP to user={} at {}", userId, mobileNumber);
-        // Note: In a full microservice setup, this would call notification-service.
-        // For now, we simulate the OTP sending.
-        log.debug("Simulated OTP sent to {}", mobileNumber);
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            Map<String, String> body = Map.of("mobileNumber", mobileNumber);
+            HttpEntity<Map<String, String>> request = new HttpEntity<>(body, headers);
+            restTemplate.postForEntity(
+                notificationServiceUrl + "/api/notifications/otp/sms/send",
+                request, Void.class
+            );
+            log.info("SMS OTP sent successfully to {}", mobileNumber);
+        } catch (Exception e) {
+            log.error("Failed to send SMS OTP via Notification Service: {}", e.getMessage());
+            throw new RuntimeException("Failed to send OTP. Please try again.");
+        }
     }
 
     @Override
     public Wallet verifyMobileKyc(Long userId, String mobileNumber, String otp) {
-        log.info("Verifying mobile KYC for user={} with otp", userId);
-        
-        // Note: In a full microservice setup, this would call notification-service.
-        // For now, we simulate OTP verification.
-        log.debug("Simulated OTP verification for mobile: {}, otp: {}", mobileNumber, otp);
-        boolean isVerified = true; // Simulating verification for now
-        
-        if (!isVerified) {
-            throw new RuntimeException("Invalid OTP provided.");
+        log.info("Verifying mobile KYC for user={}", userId);
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            Map<String, String> body = Map.of("mobileNumber", mobileNumber, "otp", otp);
+            HttpEntity<Map<String, String>> request = new HttpEntity<>(body, headers);
+            Boolean isVerified = restTemplate.postForObject(
+                notificationServiceUrl + "/api/notifications/otp/sms/verify",
+                request, Boolean.class
+            );
+            if (isVerified == null || !isVerified) {
+                throw new RuntimeException("Invalid OTP. Please try again.");
+            }
+        } catch (RuntimeException e) {
+            throw e; // re-throw validation errors as-is
+        } catch (Exception e) {
+            log.error("OTP verification failed: {}", e.getMessage());
+            throw new RuntimeException("OTP verification failed. Please try again.");
         }
 
         Wallet wallet = walletRepository.findByUserId(userId).orElse(new Wallet());

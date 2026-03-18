@@ -76,4 +76,14 @@ public class WalletController {
         List<WalletTransaction> transactions = walletService.getWalletTransactions(userId);
         return ResponseEntity.ok(new ApiResponse<>("Wallet transactions fetched successfully", transactions));
     }
+
+    @PostMapping("/deduct")
+    public ResponseEntity<ApiResponse<Boolean>> deductMoney(@RequestHeader("X-User-Id") Long userId, @RequestBody Map<String, Object> request) {
+        BigDecimal amount = new BigDecimal(request.get("amount").toString());
+        String description = (String) request.get("description");
+        String referenceId = (String) request.get("referenceId");
+        
+        boolean success = walletService.deductMoneyFromWallet(userId, amount, description, referenceId);
+        return ResponseEntity.ok(new ApiResponse<>("Wallet balance deducted successfully", success));
+    }
 }
